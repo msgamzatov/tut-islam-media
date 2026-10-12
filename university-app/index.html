@@ -318,12 +318,20 @@ function disciplineBlock(s){return srBlock(s)+`<h2>Пропуски</h2><div cla
 function historyBlock(s){return `<h2>История обучения</h2><div class="panel"><ol class="timeline">${s.history.map(h=>`<li><time>${h.d}</time>${esc(h.t)}</li>`).join('')}</ol></div>`}
 
 function openFindStudent(){
- const g=document.createElement('div');g.id='guide';let fq='',fi=null;
+ const g=document.createElement('div');g.id='guide';let fq='',fi=null,fg=null,fview='search';
+ const head=title=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">${title}</h2><button class="btn ghost small" data-x="close">Закрыть</button></div>`;
+ const modeSeg=()=>`<div class="seg" style="margin:10px 0"><button data-x="mode" data-v="search" aria-pressed="${fview==='search'}">Поиск по имени</button><button data-x="mode" data-v="groups" aria-pressed="${fview==='groups'}">По группам, с фото</button></div>`;
  const draw=()=>{
-  if(fi!=null){const s=S[fi];g.innerHTML=`<div class="in"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">${esc(s.name)}</h2><button class="btn ghost small" data-x="close">Закрыть</button></div><button class="btn ghost small" data-x="back" style="margin:10px 0">Назад к поиску</button>${hero(s)}${disciplineBlock(s)}${historyBlock(s)}<div class="btns" style="margin-top:14px"><button class="btn" data-act="remark" data-i="${fi}">Сделать замечание</button><button class="btn ghost" data-act="violation" data-i="${fi}">Записать нарушение</button><button class="btn ghost" data-act="comment" data-i="${fi}">Комментарий</button></div><p class="hint" style="margin-top:12px">Замечание и нарушение уходят родителям уведомлением и влияют на рейтинг студента. Оценки это не затрагивает — их ставит куратор группы или преподаватель, подключённый к предмету.</p></div>`;
-   const f=g.querySelector('#fsq');if(f)f.focus();return}
+  if(fi!=null){const s=S[fi];g.innerHTML=`<div class="in">${head(esc(s.name))}<button class="btn ghost small" data-x="back" style="margin:10px 0">Назад</button>${hero(s)}${disciplineBlock(s)}${historyBlock(s)}<div class="btns" style="margin-top:14px"><button class="btn" data-act="remark" data-i="${fi}">Сделать замечание</button><button class="btn ghost" data-act="violation" data-i="${fi}">Записать нарушение</button><button class="btn ghost" data-act="comment" data-i="${fi}">Комментарий</button></div><p class="hint" style="margin-top:12px">Замечание и нарушение уходят родителям уведомлением и влияют на рейтинг студента. Оценки это не затрагивает — их ставит куратор группы или преподаватель, подключённый к предмету.</p></div>`;
+   return}
+  if(fg!=null){const grp=GROUPS[fg],m=S.filter(s=>s.status==='active'&&s.group===grp.name);
+   g.innerHTML=`<div class="in">${head('Группа '+esc(grp.name))}<button class="btn ghost small" data-x="backg" style="margin:10px 0">Назад к группам</button><p class="hint">${grp.course} курс. Нажмите на фото, чтобы открыть студента.</p><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px">${m.length?m.map(s=>`<button data-x="pick" data-i="${S.indexOf(s)}" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;padding:4px;cursor:pointer;color:inherit">${avatar(s,72)}<small style="text-align:center;line-height:1.2">${esc(short(s.name))}</small></button>`).join(''):'<span class="muted">В группе пока нет студентов.</span>'}</div></div>`;
+   return}
+  if(fview==='groups'){const gl=GROUPS.filter(x=>!x.deleted);
+   g.innerHTML=`<div class="in">${head('По группам, с фото')}${modeSeg()}<p class="hint">Если не знаете имя студента — откройте его группу и узнайте по фото.</p><div class="panel">${gl.map(x=>`<button class="listbtn" data-x="pickg" data-i="${GROUPS.indexOf(x)}"><span><b>Группа ${esc(x.name)}</b><br><small class="muted">${x.course} курс, ${S.filter(s=>s.status==='active'&&s.group===x.name).length} студентов</small></span></button>`).join('')||'<span class="muted">Групп пока нет.</span>'}</div></div>`;
+   return}
   const q=fq.toLowerCase(),found=q?S.filter(s=>s.status==='active'&&(s.name.toLowerCase().includes(q)||s.id.toLowerCase().includes(q))):[];
-  g.innerHTML=`<div class="in"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Найти студента</h2><button class="btn ghost small" data-x="close">Закрыть</button></div><p class="hint" style="margin-top:10px">Найдите студента любой группы, чтобы посмотреть сведения о нём и записать замечание или нарушение — например, если он на дежурстве или наказании у вас.</p><input class="field" id="fsq" placeholder="Фамилия или ID" value="${esc(fq)}" aria-label="Поиск студента">${q?`<div class="panel" style="margin-top:10px">${found.length?found.map(s=>`<button class="listbtn" data-x="pick" data-i="${S.indexOf(s)}"><span><b>${esc(s.name)}</b><br><small class="muted">${s.id}, группа ${esc(s.group)}</small></span></button>`).join(''):'<span class="muted">Никого не найдено. Проверьте фамилию или ID.</span>'}</div>`:''}</div>`;
+  g.innerHTML=`<div class="in">${head('Найти студента')}${modeSeg()}<p class="hint">Найдите студента любой группы, чтобы посмотреть сведения о нём и записать замечание или нарушение — например, если он на дежурстве или наказании у вас.</p><input class="field" id="fsq" placeholder="Фамилия или ID" value="${esc(fq)}" aria-label="Поиск студента">${q?`<div class="panel" style="margin-top:10px">${found.length?found.map(s=>`<button class="listbtn" data-x="pick" data-i="${S.indexOf(s)}"><span><b>${esc(s.name)}</b><br><small class="muted">${s.id}, группа ${esc(s.group)}</small></span></button>`).join(''):'<span class="muted">Никого не найдено. Проверьте фамилию или ID.</span>'}</div>`:''}</div>`;
   const inp=g.querySelector('#fsq');if(inp){inp.focus();const p=inp.value.length;try{inp.setSelectionRange(p,p)}catch(_){}inp.addEventListener('input',e=>{fq=e.target.value;draw()})}
  };
  draw();
@@ -331,7 +339,10 @@ function openFindStudent(){
   const x=e.target.closest('[data-x]');if(!x)return;const d=x.dataset.x;
   if(d==='close'){g.remove();return}
   if(d==='back'){fi=null;draw();return}
+  if(d==='backg'){fg=null;draw();return}
   if(d==='pick'){fi=+x.dataset.i;draw();return}
+  if(d==='pickg'){fg=+x.dataset.i;draw();return}
+  if(d==='mode'){fview=x.dataset.v;fg=null;draw();return}
  });
  document.body.appendChild(g);g.scrollTop=0;
 }
