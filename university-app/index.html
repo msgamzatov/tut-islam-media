@@ -116,7 +116,7 @@ nav.tabs button[aria-pressed="true"]{color:var(--ink);font-weight:700;border-top
 .fl{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
 .thumb{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.grid2 .gbtn{margin:0;font-size:14.5px;padding:11px 12px}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50}
 .sheet{background:var(--surface);width:100%;max-width:460px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px))}
 .sheet h3{margin:0 0 10px;font-size:18px}
 #toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30;max-width:90%}
@@ -316,6 +316,25 @@ function disciplineBlock(s){return srBlock(s)+`<h2>Пропуски</h2><div cla
  ${vblock(s)}
  <h2>Комментарии преподавателей</h2><div class="panel">${s.comments.length?s.comments.map(c=>`<div class="row"><div>${esc(c.t)}<br><small>${c.d}, ${esc(c.by)}</small></div></div>`).join(''):'<span class="muted">Комментариев пока нет.</span>'}</div>`}
 function historyBlock(s){return `<h2>История обучения</h2><div class="panel"><ol class="timeline">${s.history.map(h=>`<li><time>${h.d}</time>${esc(h.t)}</li>`).join('')}</ol></div>`}
+
+function openFindStudent(){
+ const g=document.createElement('div');g.id='guide';let fq='',fi=null;
+ const draw=()=>{
+  if(fi!=null){const s=S[fi];g.innerHTML=`<div class="in"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">${esc(s.name)}</h2><button class="btn ghost small" data-x="close">Закрыть</button></div><button class="btn ghost small" data-x="back" style="margin:10px 0">Назад к поиску</button>${hero(s)}${disciplineBlock(s)}${historyBlock(s)}<div class="btns" style="margin-top:14px"><button class="btn" data-act="remark" data-i="${fi}">Сделать замечание</button><button class="btn ghost" data-act="violation" data-i="${fi}">Записать нарушение</button><button class="btn ghost" data-act="comment" data-i="${fi}">Комментарий</button></div><p class="hint" style="margin-top:12px">Замечание и нарушение уходят родителям уведомлением и влияют на рейтинг студента. Оценки это не затрагивает — их ставит куратор группы или преподаватель, подключённый к предмету.</p></div>`;
+   const f=g.querySelector('#fsq');if(f)f.focus();return}
+  const q=fq.toLowerCase(),found=q?S.filter(s=>s.status==='active'&&(s.name.toLowerCase().includes(q)||s.id.toLowerCase().includes(q))):[];
+  g.innerHTML=`<div class="in"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Найти студента</h2><button class="btn ghost small" data-x="close">Закрыть</button></div><p class="hint" style="margin-top:10px">Найдите студента любой группы, чтобы посмотреть сведения о нём и записать замечание или нарушение — например, если он на дежурстве или наказании у вас.</p><input class="field" id="fsq" placeholder="Фамилия или ID" value="${esc(fq)}" aria-label="Поиск студента">${q?`<div class="panel" style="margin-top:10px">${found.length?found.map(s=>`<button class="listbtn" data-x="pick" data-i="${S.indexOf(s)}"><span><b>${esc(s.name)}</b><br><small class="muted">${s.id}, группа ${esc(s.group)}</small></span></button>`).join(''):'<span class="muted">Никого не найдено. Проверьте фамилию или ID.</span>'}</div>`:''}</div>`;
+  const inp=g.querySelector('#fsq');if(inp){inp.focus();const p=inp.value.length;try{inp.setSelectionRange(p,p)}catch(_){}inp.addEventListener('input',e=>{fq=e.target.value;draw()})}
+ };
+ draw();
+ g.addEventListener('click',e=>{
+  const x=e.target.closest('[data-x]');if(!x)return;const d=x.dataset.x;
+  if(d==='close'){g.remove();return}
+  if(d==='back'){fi=null;draw();return}
+  if(d==='pick'){fi=+x.dataset.i;draw();return}
+ });
+ document.body.appendChild(g);g.scrollTop=0;
+}
 
 const MYKIDS=[S[0].id];
 function findKid(id){id=(id||'').trim();if(!id)return null;let k=S.find(x=>x.id===id);if(k)return k;return (other().S||[]).find(x=>x.id===id)||null}
@@ -760,7 +779,7 @@ const brandBar=()=>(st.role==='student'||st.role==='parent')&&st.tab===0?cover()
 PAGES.news=newsPage;
 function render(){
  syncLate();syncDuty();syncEv();syncClose();
- $('#app').innerHTML=cover()+corpBar()+`<div class="roles" role="group" aria-label="Смотреть как">${Object.entries(ROLES).filter(([k])=>(st.corp==='f'||(k!=='vosp2'&&k!=='zamv'))&&(k!=='lib'||T.some(x=>x.id==='lib0'&&!x.fired))&&(k!=='povar'||T.some(x=>x.id==='pv0'&&!x.fired))).map(([k,v])=>`<button data-act="role" data-v="${k}" aria-pressed="${k===st.role}">${v[0]}</button>`).join('')}</div>`+`<p class="hint" style="margin:2px 0 10px">Сегодня: ${today}, по хиджре: ${hijriStr(today)} (расчётный календарь Умм-аль-Кура, может отличаться от объявленного на день)</p>`+(((st.role==='rector'||st.role==='zam')&&SOS.some(x=>!x.done))?`<div class="panel note bad" style="border-width:2px">${SOS.filter(x=>!x.done).map(x=>`<div style="margin-bottom:8px"><b>Экстренно, ${fmt(x.at)}</b><br>${esc(x.t)}<br><small class="muted">Сообщил(а): ${esc(x.by)}</small><div class="btns" style="margin-top:6px"><button class="btn small" data-act="sosdone" data-v="${x.id}">Решено</button></div></div>`).join('')}</div>`:'')+
+ $('#app').innerHTML=cover()+corpBar()+`<div class="roles" role="group" aria-label="Смотреть как">${Object.entries(ROLES).filter(([k])=>(st.corp==='f'||(k!=='vosp2'&&k!=='zamv'))&&(k!=='lib'||T.some(x=>x.id==='lib0'&&!x.fired))&&(k!=='povar'||T.some(x=>x.id==='pv0'&&!x.fired))).map(([k,v])=>`<button data-act="role" data-v="${k}" aria-pressed="${k===st.role}">${v[0]}</button>`).join('')}</div>`+(['curator','teacher','vosp','vosp2','zamv','hoz','lib','kas','povar','zavsklad'].includes(st.role)?`<button class="btn ghost small" data-act="findst" style="margin:8px 0 0">Найти студента</button>`:'')+`<p class="hint" style="margin:2px 0 10px">Сегодня: ${today}, по хиджре: ${hijriStr(today)} (расчётный календарь Умм-аль-Кура, может отличаться от объявленного на день)</p>`+(((st.role==='rector'||st.role==='zam')&&SOS.some(x=>!x.done))?`<div class="panel note bad" style="border-width:2px">${SOS.filter(x=>!x.done).map(x=>`<div style="margin-bottom:8px"><b>Экстренно, ${fmt(x.at)}</b><br>${esc(x.t)}<br><small class="muted">Сообщил(а): ${esc(x.by)}</small><div class="btns" style="margin-top:6px"><button class="btn small" data-act="sosdone" data-v="${x.id}">Решено</button></div></div>`).join('')}</div>`:'')+
   ((st.role==='student'?viewStudent(S[0]):st.role==='parent'?(pickKid()?viewStudent(pickKid(),true):kidSwitchHTML()+`<div class="lock"><h1>Детей пока нет</h1><p class="muted">Добавьте ребёнка по ID ниже.</p></div>`+kidsManageHTML()):st.role==='curator'?viewCurator(T[0],true):st.role==='teacher'?viewCurator(T[4],false):st.role==='vosp'?viewCurator(T[5],false):st.role==='sekr'?viewSek():st.role==='vosp2'?viewCurator(T[9],false):st.role==='zamv'?viewCurator(T[10],false):st.role==='hoz'?viewCurator(T[6],false):st.role==='kas'?viewCurator(T[7],false):st.role==='lib'?viewCurator(T.find(x=>x.id==='lib0')||T[6],false):st.role==='povar'?viewCurator(T.find(x=>x.id==='pv0')||T[6],false):st.role==='zavsklad'?viewCurator(T.find(x=>x.id==='zs0')||T[6],false):viewAdmin())+'<div class="btns" style="margin-top:26px"><button class="btn ghost" data-act="printv">Распечатать этот экран</button></div>'+'<p class="hint" style="text-align:center;opacity:.55;margin-top:30px;font-size:11px">Внутренний рабочий сервис университета для сотрудников, студентов и родителей. Сведения в нём служат для организации учёбы и быта и не являются официальным документом университета.</p>');
  PEND.splice(0).forEach(f=>f());
  const pp=cur(),hasT=TASKS.some(t=>sees(t,pp)&&!(t.seen&&t.seen[pp.id]))||(DUTYP.includes(pp.id)&&dutyAlert(pp))||evAlert(pp),dotAt={parent:myNotes().some(n=>!n.read)?3:-1,curator:hasT?1:-1,teacher:hasT?1:-1,vosp:hasT?1:-1,vosp2:hasT?1:-1,zamv:hasT?1:-1,sekr:hasT?2:-1,hoz:hasT?1:-1,kas:hasT?1:-1,zam:hasT?4:-1}[st.role];
@@ -850,6 +869,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
  else if(a==='openS'){st.openS=i;window.scrollTo(0,0)}
  else if(a==='openT'){st.openT=i;window.scrollTo(0,0)}
  else if(a==='back'){if(st.openS!=null)st.openS=null;else{st.openG=st.openT=null;st.openD=st.openA=false;st.page=null}}
+ else if(a==='findst'){openFindStudent();return}
  else if(a==='card')return openCard(S[i]);
  else if(a==='archv'){st.openA=true;st.aq='';st.ay='';window.scrollTo(0,0)}
  else if(a==='ay')st.ay=v;
